@@ -1,13 +1,17 @@
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+use rust_decimal::{prelude::FromPrimitive, Decimal};
 
 use crate::transactions::Transaction;
 
 #[derive(Debug, Serialize)]
 pub struct Account {
     pub client: u16,
+    #[serde(serialize_with = "decimal_round")]
     pub available: f64,
+    #[serde(serialize_with = "decimal_round")]
     pub held: f64,
+    #[serde(serialize_with = "decimal_round")]
     pub total: f64,
     pub locked: bool,
 }
@@ -55,4 +59,12 @@ impl Account {
             self.locked = true;
         }
     }
+}
+
+fn decimal_round<S>(x: &f64, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let rounded = Decimal::from_f64(*x).unwrap().round_dp(4);
+    s.serialize_str(&rounded.to_string())
 }
