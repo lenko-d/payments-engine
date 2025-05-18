@@ -65,26 +65,54 @@ mod tests {
     use crate::{account::Account, transactions::process_transactions};
     use super::Transaction;
 
-    fn deposit_transactions() -> Vec<Transaction> {
+    const CLIENT_ID_ONE: u16 = 1;
+    const CLIENT_ID_TWO: u16 = 2;
+
+    fn deposit_transactions(tx_id1: u32, tx_id2: u32, tx_id3: u32) -> Vec<Transaction> {
         let t1: Transaction = Transaction{
             type_: "deposit".to_owned(),
-            client: 1,
-            tx: 1,
+            client: CLIENT_ID_ONE,
+            tx: tx_id1,
             amount: Decimal::new(7, 0)
         };
 
         let t2: Transaction = Transaction{
             type_: "deposit".to_owned(),
-            client: 2,
-            tx: 1,
+            client: CLIENT_ID_TWO,
+            tx: tx_id2,
             amount: Decimal::new(17, 0)
         };
 
         let t3: Transaction = Transaction{
             type_: "deposit".to_owned(),
-            client: 2,
-            tx: 1,
+            client: CLIENT_ID_TWO,
+            tx: tx_id3,
             amount: Decimal::new(27, 0)
+        };
+
+        return vec![t1, t2, t3];
+    }
+
+    fn withdrawal_transactions(tx_id1: u32, tx_id2: u32, tx_id3: u32) -> Vec<Transaction> {
+        let t1: Transaction = Transaction{
+            type_: "withdrawal".to_owned(),
+            client: CLIENT_ID_ONE,
+            tx: tx_id1,
+            amount: Decimal::new(7, 0)
+        };
+
+        let t2: Transaction = Transaction{
+            type_: "withdrawal".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: tx_id2,
+            amount: Decimal::new(15, 0)
+        };
+
+        let t3: Transaction = Transaction{
+            type_: "withdrawal".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: tx_id3,
+            amount: Decimal::new(25, 0)
         };
 
         return vec![t1, t2, t3];
@@ -92,12 +120,56 @@ mod tests {
 
  #[test]
  fn multiple_deposits(){
-    let mut transactions = deposit_transactions();
+    let mut transactions = deposit_transactions(1,2,3);
 
     let accounts = process_transactions(&mut transactions);
  
-    let account = get_account_by_client_id(2, accounts).unwrap();
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
     assert!(account.available == Decimal::from_str_exact("44").unwrap());
+ }
+
+ #[test]
+ fn multiple_withdrawals(){
+    let mut transactions = deposit_transactions(1,2,3);
+    transactions.append(&mut withdrawal_transactions(4,5,6));
+
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("4").unwrap());
+ }
+
+ #[test]
+ fn withdraw_more_than_available(){
+    let mut transactions = deposit_transactions(1,2,3);
+    transactions.append(&mut withdrawal_transactions(4,5,6));
+    transactions.append(&mut withdrawal_transactions(7,8,9));
+
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("4").unwrap());
+ }
+
+ #[test]
+ fn withdraw_as_much_as_available(){
+    let mut transactions = deposit_transactions(1,2,3);
+    transactions.append(&mut withdrawal_transactions(4,5,6));
+    transactions.append(&mut withdrawal_transactions(7,8,9));
+
+    let t1: Transaction = Transaction{
+            type_: "withdrawal".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 10,
+            amount: Decimal::new(4, 0)
+        };
+    let mut tx_withdraw_all_available = vec![t1];
+    transactions.append(&mut tx_withdraw_all_available);
+    
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("0").unwrap());
  }
 
  fn get_account_by_client_id(clinet_id: u16, accounts: Vec<Account>) -> Option<Account> {
