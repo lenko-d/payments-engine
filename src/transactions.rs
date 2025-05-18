@@ -14,6 +14,12 @@ pub struct Transaction {
     pub amount: Decimal,
 }
 
+const DEPOSIT: &str = "deposit";
+const WITHDRAWAL: &str = "withdrawal";
+const DISPUTE: &str = "dispute";
+const RESOLVE: &str = "resolve";
+const CHARGEBACK: &str = "chargeback";
+
 pub fn from_file(transactions_file: &str) -> Vec<Account>{
     let mut transactions = read_transactions(transactions_file).unwrap();
 
@@ -37,21 +43,21 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
     let mut transactions_by_id = HashMap::new();
     let mut disputed_transactions_by_id = HashMap::new();
     for transaction in transactions.iter() {
-        if transaction.type_ == "dispute" {
+        if transaction.type_ == DISPUTE {
             let transaction_is_under_dispute = disputed_transactions_by_id.get(&transaction.tx);
             if transaction_is_under_dispute.is_some() {
                 // The transaction is already under dispute so we don't do anything.
                 // We ignore(skip) the dispute request.
                 continue;
             }
-
+        
             disputed_transactions_by_id.insert(transaction.tx, transaction);
         }
 
         // dont store certain types of transactions in the lookup table
         // because they provide a reference tr id instead of actual current tr id.
         // The reference tr id overrides the actual tr id.
-        if transaction.type_ != "dispute" && transaction.type_ != "resolve" && transaction.type_!= "chargeback" {
+        if transaction.type_ != DISPUTE && transaction.type_ != RESOLVE && transaction.type_!= CHARGEBACK {
             transactions_by_id.insert(transaction.tx, transaction);
         }
 
@@ -61,11 +67,11 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
         }
 
         match transaction.type_.as_str() {
-            "deposit" => account.deposit(transaction.amount),
-            "withdrawal" => account.withdraw(transaction.amount),
-            "dispute" => account.dispute(transactions_by_id.get(&transaction.tx)),
-            "resolve" => account.resolve(transactions_by_id.get(&transaction.tx), &mut disputed_transactions_by_id),
-            "chargeback" => account.chargeback(transactions_by_id.get(&transaction.tx), &mut disputed_transactions_by_id),
+            DEPOSIT => account.deposit(transaction.amount),
+            WITHDRAWAL => account.withdraw(transaction.amount),
+            DISPUTE => account.dispute(transactions_by_id.get(&transaction.tx)),
+            RESOLVE => account.resolve(transactions_by_id.get(&transaction.tx), &mut disputed_transactions_by_id),
+            CHARGEBACK => account.chargeback(transactions_by_id.get(&transaction.tx), &mut disputed_transactions_by_id),
             _ => () // ignore unsupported or unrecognized transaction types
         }
 
@@ -79,29 +85,28 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
 #[cfg(test)]
 mod tests {
     use rust_decimal::Decimal;
-    use crate::{account::Account, transactions::process_transactions};
-    use super::Transaction;
+    use crate::{account::Account, transactions::{process_transactions, Transaction, DISPUTE, DEPOSIT, WITHDRAWAL, RESOLVE, CHARGEBACK}};
 
     const CLIENT_ID_ONE: u16 = 1;
     const CLIENT_ID_TWO: u16 = 2;
 
     fn deposit_transactions(tx_id1: u32, tx_id2: u32, tx_id3: u32) -> Vec<Transaction> {
         let t1: Transaction = Transaction{
-            type_: "deposit".to_owned(),
+            type_: DEPOSIT.to_owned(),
             client: CLIENT_ID_ONE,
             tx: tx_id1,
             amount: Decimal::new(7, 0)
         };
 
         let t2: Transaction = Transaction{
-            type_: "deposit".to_owned(),
+            type_: DEPOSIT.to_owned(),
             client: CLIENT_ID_TWO,
             tx: tx_id2,
             amount: Decimal::new(17, 0)
         };
 
         let t3: Transaction = Transaction{
-            type_: "deposit".to_owned(),
+            type_: DEPOSIT.to_owned(),
             client: CLIENT_ID_TWO,
             tx: tx_id3,
             amount: Decimal::new(27, 0)
@@ -112,21 +117,21 @@ mod tests {
 
     fn withdrawal_transactions(tx_id1: u32, tx_id2: u32, tx_id3: u32) -> Vec<Transaction> {
         let t1: Transaction = Transaction{
-            type_: "withdrawal".to_owned(),
+            type_: WITHDRAWAL.to_owned(),
             client: CLIENT_ID_ONE,
             tx: tx_id1,
             amount: Decimal::new(7, 0)
         };
 
         let t2: Transaction = Transaction{
-            type_: "withdrawal".to_owned(),
+            type_: WITHDRAWAL.to_owned(),
             client: CLIENT_ID_TWO,
             tx: tx_id2,
             amount: Decimal::new(15, 0)
         };
 
         let t3: Transaction = Transaction{
-            type_: "withdrawal".to_owned(),
+            type_: WITHDRAWAL.to_owned(),
             client: CLIENT_ID_TWO,
             tx: tx_id3,
             amount: Decimal::new(25, 0)
@@ -178,7 +183,7 @@ mod tests {
     transactions.append(&mut withdrawal_transactions(7,8,9));
 
     let t1: Transaction = Transaction{
-            type_: "withdrawal".to_owned(),
+            type_: WITHDRAWAL.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 10,
             amount: Decimal::new(4, 0)
@@ -197,7 +202,7 @@ mod tests {
  fn dispute(){
     let mut transactions = deposit_transactions(1,2,3);
     let t1: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -217,7 +222,7 @@ mod tests {
  fn dispute_transaction_that_is_already_disputed(){
     let mut transactions = deposit_transactions(1,2,3);
     let t1: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -226,7 +231,7 @@ mod tests {
     transactions.append(&mut tx_dispute);
 
     let t2: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -246,7 +251,7 @@ mod tests {
  fn dispute_non_existent_transaction(){
     let mut transactions = deposit_transactions(1,2,3);
     let t1: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 7,
             amount: Decimal::ZERO,
@@ -266,7 +271,7 @@ mod tests {
  fn resolve(){
     let mut transactions = deposit_transactions(1,2,3);
     let t1: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -275,7 +280,7 @@ mod tests {
     transactions.append(&mut tx_dispute);
 
     let t2: Transaction = Transaction{
-            type_: "resolve".to_owned(),
+            type_: RESOLVE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -295,7 +300,7 @@ mod tests {
  fn resolve_non_existent_transaction(){
     let mut transactions = deposit_transactions(1,2,3);
     let t1: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -304,7 +309,7 @@ mod tests {
     transactions.append(&mut tx_dispute);
 
     let t2: Transaction = Transaction{
-            type_: "resolve".to_owned(),
+            type_: RESOLVE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 7,
             amount: Decimal::ZERO,
@@ -326,7 +331,7 @@ mod tests {
     let mut transactions = deposit_transactions(1,2,3);
 
     let t2: Transaction = Transaction{
-            type_: "resolve".to_owned(),
+            type_: RESOLVE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -346,7 +351,7 @@ mod tests {
  fn resolve_transaction_that_was_already_resolved(){
     let mut transactions = deposit_transactions(1,2,3);
     let t1: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -355,7 +360,7 @@ mod tests {
     transactions.append(&mut tx_dispute);
 
     let t2: Transaction = Transaction{
-            type_: "resolve".to_owned(),
+            type_: RESOLVE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -364,7 +369,7 @@ mod tests {
     transactions.append(&mut tx_resolve);
 
     let t3: Transaction = Transaction{
-            type_: "resolve".to_owned(),
+            type_: RESOLVE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -384,7 +389,7 @@ mod tests {
  fn chargeback(){
     let mut transactions = deposit_transactions(1,2,3);
     let t1: Transaction = Transaction{
-            type_: "dispute".to_owned(),
+            type_: DISPUTE.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -393,7 +398,7 @@ mod tests {
     transactions.append(&mut tx_dispute);
 
     let t2: Transaction = Transaction{
-            type_: "chargeback".to_owned(),
+            type_: CHARGEBACK.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
@@ -415,7 +420,7 @@ mod tests {
     let mut transactions = deposit_transactions(1,2,3);
 
     let t2: Transaction = Transaction{
-            type_: "chargeback".to_owned(),
+            type_: CHARGEBACK.to_owned(),
             client: CLIENT_ID_TWO,
             tx: 2,
             amount: Decimal::ZERO,
