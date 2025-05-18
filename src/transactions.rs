@@ -49,7 +49,7 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
             "dispute" => account.dispute(transactions_by_id.get(&transaction.tx)),
             "resolve" => account.resolve(transactions_by_id.get(&transaction.tx)),
             "chargeback" => account.chargeback(transactions_by_id.get(&transaction.tx)),
-            _ => println!("unhandled TODO")
+            _ => () // ignore unsupported or unrecognized transaction types
         }
 
         accounts.insert(transaction.client,account);
