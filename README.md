@@ -12,6 +12,7 @@ If the input file contains unsupported or unrecognized transaction type then tha
 A dispute request will be ignored if there is a pending dispute for the same transaction.
 A request to resolve a dispute will be ignored if the dispute was already resolved.
 A chargeback will be ignored if the transaction is not under a dispute or doesn't exist.
+After a successful chargeback the transaction is considered to no longer be under a dispute.
 
 ## How to run unit tests
 cargo test

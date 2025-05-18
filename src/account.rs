@@ -48,48 +48,62 @@ impl Account {
         }
     }
 
-    pub fn dispute(&mut self, disputed_transaction: Option<&&Transaction>) {
+    pub fn dispute(&mut self, transaction: Option<&&Transaction>) {
         if self.locked {
             return;
         }
 
-        if disputed_transaction.is_some() {
-            self.available -= disputed_transaction.unwrap().amount;
-            self.held += disputed_transaction.unwrap().amount;
+        if transaction.is_some() {
+            self.available -= transaction.unwrap().amount;
+            self.held += transaction.unwrap().amount;
         }
     }
 
-    pub fn resolve(&mut self, disputed_transaction: Option<&&Transaction>, disputed_transactions_by_id: &mut HashMap<u32, &Transaction>) {
+    pub fn resolve(&mut self, transaction: Option<&&Transaction>, disputed_transactions_by_id: &mut HashMap<u32, &Transaction>) {
         if self.locked {
             return;
         }
 
-        if disputed_transaction.is_some() {
-            let transaction_is_under_dispute = disputed_transactions_by_id.get(&disputed_transaction.unwrap().tx);
-            if transaction_is_under_dispute.is_none() {
+        if transaction.is_some() {
+            if !is_under_dispute(transaction.unwrap().tx, disputed_transactions_by_id) {
                 // The transaction is not under a dispute so we do nothing.
-                // The transaction will not be under a dispute if it was already resolved or the payment command to start a dispute is missing
                 return;
             }
 
-            self.available += disputed_transaction.unwrap().amount;
-            self.held -= disputed_transaction.unwrap().amount;
+            self.available += transaction.unwrap().amount;
+            self.held -= transaction.unwrap().amount;
             // Mark the transaction as no longer being under a dispute.
-            disputed_transactions_by_id.remove(&transaction_is_under_dispute.unwrap().tx);
+            disputed_transactions_by_id.remove(&transaction.unwrap().tx);
         }
     }
 
-    pub fn chargeback(&mut self, disputed_transaction: Option<&&Transaction>) {
+    pub fn chargeback(&mut self, transaction: Option<&&Transaction>, disputed_transactions_by_id: &mut HashMap<u32, &Transaction>) {
         if self.locked {
             return;
         }
-        
-        if disputed_transaction.is_some() {
-            self.held -= disputed_transaction.unwrap().amount;
-            self.total -= disputed_transaction.unwrap().amount;
+
+        if transaction.is_some() {
+            if !is_under_dispute(transaction.unwrap().tx, disputed_transactions_by_id) {
+                // The transaction is not under a dispute so we do nothing.
+                return;
+            }
+
+            self.held -= transaction.unwrap().amount;
+            self.total -= transaction.unwrap().amount;
             self.locked = true;
+            // Mark the transaction as no longer being under a dispute.
+            disputed_transactions_by_id.remove(&transaction.unwrap().tx);
         }
     }
+}
+
+fn is_under_dispute(tx_id: u32, disputed_transactions_by_id: &mut HashMap<u32, &Transaction>) -> bool {
+    let transaction_is_under_dispute = disputed_transactions_by_id.get(&tx_id);
+    if transaction_is_under_dispute.is_some() {
+        return true;
+    }
+
+    return false;
 }
 
 fn round_four_digits<S>(x: &Decimal, s: S) -> Result<S::Ok, S::Error>

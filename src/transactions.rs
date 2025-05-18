@@ -51,7 +51,7 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
         // dont store certain types of transactions in the lookup table
         // because they provide a reference tr id instead of actual current tr id.
         // The reference tr id overrides the actual tr id.
-        if transaction.type_ != "dispute" && transaction.type_ != "resolve" {
+        if transaction.type_ != "dispute" && transaction.type_ != "resolve" && transaction.type_!= "chargeback" {
             transactions_by_id.insert(transaction.tx, transaction);
         }
 
@@ -65,7 +65,7 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
             "withdrawal" => account.withdraw(transaction.amount),
             "dispute" => account.dispute(transactions_by_id.get(&transaction.tx)),
             "resolve" => account.resolve(transactions_by_id.get(&transaction.tx), &mut disputed_transactions_by_id),
-            "chargeback" => account.chargeback(transactions_by_id.get(&transaction.tx)),
+            "chargeback" => account.chargeback(transactions_by_id.get(&transaction.tx), &mut disputed_transactions_by_id),
             _ => () // ignore unsupported or unrecognized transaction types
         }
 
@@ -378,6 +378,58 @@ mod tests {
     assert!(account.available == Decimal::from_str_exact("44").unwrap());
     assert!(account.held == Decimal::from_str_exact("0").unwrap());
     assert!(account.total == Decimal::from_str_exact("44").unwrap());
+ }
+
+  #[test]
+ fn chargeback(){
+    let mut transactions = deposit_transactions(1,2,3);
+    let t1: Transaction = Transaction{
+            type_: "dispute".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 2,
+            amount: Decimal::ZERO,
+        };
+    let mut tx_dispute = vec![t1];
+    transactions.append(&mut tx_dispute);
+
+    let t2: Transaction = Transaction{
+            type_: "chargeback".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 2,
+            amount: Decimal::ZERO,
+        };
+    let mut tx_chargeback = vec![t2];
+    transactions.append(&mut tx_chargeback);
+
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("27").unwrap());
+    assert!(account.held == Decimal::from_str_exact("0").unwrap());
+    assert!(account.total == Decimal::from_str_exact("27").unwrap());
+    assert!(account.locked == true);
+ }
+
+ #[test]
+ fn chargeback_for_transaction_not_under_dispute(){
+    let mut transactions = deposit_transactions(1,2,3);
+
+    let t2: Transaction = Transaction{
+            type_: "chargeback".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 2,
+            amount: Decimal::ZERO,
+        };
+    let mut tx_chargeback = vec![t2];
+    transactions.append(&mut tx_chargeback);
+
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("44").unwrap());
+    assert!(account.held == Decimal::from_str_exact("0").unwrap());
+    assert!(account.total == Decimal::from_str_exact("44").unwrap());
+    assert!(account.locked == false);
  }
 
  fn get_account_by_client_id(clinet_id: u16, accounts: Vec<Account>) -> Option<Account> {
