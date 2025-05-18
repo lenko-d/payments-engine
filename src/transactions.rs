@@ -1,6 +1,7 @@
 extern crate csv;
 
 use std::{collections::HashMap, error::Error};
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use crate::account::{Account};
 
@@ -10,7 +11,7 @@ pub struct Transaction {
     pub type_: String,
     pub client: u16,
     pub tx: u32,
-    pub amount: f64,
+    pub amount: Decimal,
 }
 
 pub fn from_file(transactions_file: &str) -> Vec<Account>{

@@ -1,39 +1,38 @@
 
 use serde::{Serialize, Serializer};
-use rust_decimal::{prelude::FromPrimitive, Decimal};
+use rust_decimal::Decimal;
 
 use crate::transactions::Transaction;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Account {
     pub client: u16,
-    #[serde(serialize_with = "decimal_round")]
-    pub available: f64,
-    #[serde(serialize_with = "decimal_round")]
-    pub held: f64,
-    #[serde(serialize_with = "decimal_round")]
-    pub total: f64,
+    #[serde(serialize_with = "round_four_digits")]
+    pub available: Decimal,
+    #[serde(serialize_with = "round_four_digits")]
+    pub held: Decimal,
+    #[serde(serialize_with = "round_four_digits")]
+    pub total: Decimal,
     pub locked: bool,
 }
-
 
 impl Account {
     pub fn new(client: u16) -> Account {
         Account { 
             client, 
-            available: 0.0,
-            held: 0.0,
-            total: 0.0,
+            available: Decimal::ZERO,
+            held: Decimal::ZERO,
+            total: Decimal::ZERO,
             locked: false,
         }
     }
 
-    pub fn deposit(&mut self, amount: f64) {
+    pub fn deposit(&mut self, amount: Decimal) {
         self.available += amount;
         self.total += amount;
     }
 
-    pub fn withdraw(&mut self, amount: f64) {
+    pub fn withdraw(&mut self, amount: Decimal) {
         self.available -= amount;
         self.total -= amount;
     }
@@ -61,10 +60,9 @@ impl Account {
     }
 }
 
-fn decimal_round<S>(x: &f64, s: S) -> Result<S::Ok, S::Error>
+fn round_four_digits<S>(x: &Decimal, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let rounded = Decimal::from_f64(*x).unwrap().round_dp(4);
-    s.serialize_str(&rounded.to_string())
+    s.serialize_str(&x.round_dp(4).to_string())
 }
