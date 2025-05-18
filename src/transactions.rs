@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 use serde::Deserialize;
 use crate::account::{Account};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Transaction {
      #[serde(rename = "type")]
     pub type_: String,
@@ -58,3 +58,55 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
     accounts.values().cloned().collect()
 }
 
+
+#[cfg(test)]
+mod tests {
+    use rust_decimal::Decimal;
+    use crate::{account::Account, transactions::process_transactions};
+    use super::Transaction;
+
+    fn deposit_transactions() -> Vec<Transaction> {
+        let t1: Transaction = Transaction{
+            type_: "deposit".to_owned(),
+            client: 1,
+            tx: 1,
+            amount: Decimal::new(7, 0)
+        };
+
+        let t2: Transaction = Transaction{
+            type_: "deposit".to_owned(),
+            client: 2,
+            tx: 1,
+            amount: Decimal::new(17, 0)
+        };
+
+        let t3: Transaction = Transaction{
+            type_: "deposit".to_owned(),
+            client: 2,
+            tx: 1,
+            amount: Decimal::new(27, 0)
+        };
+
+        return vec![t1, t2, t3];
+    }
+
+ #[test]
+ fn multiple_deposits(){
+    let mut transactions = deposit_transactions();
+
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(2, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("44").unwrap());
+ }
+
+ fn get_account_by_client_id(clinet_id: u16, accounts: Vec<Account>) -> Option<Account> {
+    for account in accounts {
+        if account.client == clinet_id {
+            return Some(account);
+        }
+    }
+
+    return None;
+ }
+}

@@ -7,3 +7,6 @@ state of clients accounts as a CSV.
 ## Design choices and assumptions
 
 A withdraw request will not do anything if the available money in the account is less than the requested amount.
+
+## How to run unit tests
+cargo test
