@@ -11,3 +11,6 @@ If the input file contains unsupported or unrecognized transaction type then tha
 
 ## How to run unit tests
 cargo test
+
+## How to test using the sample transactions file
+cargo run -- transactions.csv > accounts.csv
