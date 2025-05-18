@@ -36,7 +36,10 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
     let mut accounts: HashMap<u16, Account> = HashMap::new();
     let mut transactions_by_id = HashMap::new();
     for transaction in transactions.iter() {
-        if transaction.type_ != "dispute" {
+        // dont store certain types of transactions in the lookup table
+        // because they provide a reference tr id instead of actual current tr id.
+        // The reference tr id overrides the actual tr id.
+        if transaction.type_ != "dispute" && transaction.type_ != "resolve" {
             transactions_by_id.insert(transaction.tx, transaction);
         }
 
@@ -213,6 +216,36 @@ mod tests {
     let accounts = process_transactions(&mut transactions);
  
     let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("44").unwrap());
+    assert!(account.held == Decimal::from_str_exact("0").unwrap());
+    assert!(account.total == Decimal::from_str_exact("44").unwrap());
+ }
+
+ #[test]
+ fn resolve(){
+    let mut transactions = deposit_transactions(1,2,3);
+    let t1: Transaction = Transaction{
+            type_: "dispute".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 2,
+            amount: Decimal::ZERO,
+    };
+    let mut tx_dispute = vec![t1];
+    transactions.append(&mut tx_dispute);
+
+    let t2: Transaction = Transaction{
+            type_: "resolve".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 2,
+            amount: Decimal::ZERO,
+    };
+    let mut tx_resolve = vec![t2];
+    transactions.append(&mut tx_resolve);
+
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    println!("available: {:?}", account.available);
     assert!(account.available == Decimal::from_str_exact("44").unwrap());
     assert!(account.held == Decimal::from_str_exact("0").unwrap());
     assert!(account.total == Decimal::from_str_exact("44").unwrap());
