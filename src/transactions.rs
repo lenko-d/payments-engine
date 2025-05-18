@@ -191,6 +191,7 @@ mod tests {
     let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
     assert!(account.available == Decimal::from_str_exact("27").unwrap());
     assert!(account.held == Decimal::from_str_exact("17").unwrap());
+    assert!(account.total == Decimal::from_str_exact("44").unwrap());
  }
 
  #[test]
@@ -210,6 +211,7 @@ mod tests {
     let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
     assert!(account.available == Decimal::from_str_exact("44").unwrap());
     assert!(account.held == Decimal::from_str_exact("0").unwrap());
+    assert!(account.total == Decimal::from_str_exact("44").unwrap());
  }
 
  fn get_account_by_client_id(clinet_id: u16, accounts: Vec<Account>) -> Option<Account> {
