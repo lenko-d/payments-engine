@@ -33,8 +33,10 @@ impl Account {
     }
 
     pub fn withdraw(&mut self, amount: Decimal) {
-        self.available -= amount;
-        self.total -= amount;
+        if self.available >= amount {
+            self.available -= amount;
+            self.total -= amount;
+        }
     }
 
     pub fn dispute(&mut self, disputed_transaction: Option<&&Transaction>) {
