@@ -23,7 +23,3 @@ fn print(accounts: &Vec<Account>) {
                 .expect("Unable to write to output file.");
     }
 }
-
-
-
-
