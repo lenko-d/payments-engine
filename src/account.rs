@@ -29,11 +29,19 @@ impl Account {
     }
 
     pub fn deposit(&mut self, amount: Decimal) {
+        if self.locked {
+            return;
+        }
+
         self.available += amount;
         self.total += amount;
     }
 
     pub fn withdraw(&mut self, amount: Decimal) {
+        if self.locked {
+            return;
+        }
+
         if self.available >= amount {
             self.available -= amount;
             self.total -= amount;
@@ -41,6 +49,10 @@ impl Account {
     }
 
     pub fn dispute(&mut self, disputed_transaction: Option<&&Transaction>) {
+        if self.locked {
+            return;
+        }
+
         if disputed_transaction.is_some() {
             self.available -= disputed_transaction.unwrap().amount;
             self.held += disputed_transaction.unwrap().amount;
@@ -48,6 +60,10 @@ impl Account {
     }
 
     pub fn resolve(&mut self, disputed_transaction: Option<&&Transaction>, disputed_transactions_by_id: &mut HashMap<u32, &Transaction>) {
+        if self.locked {
+            return;
+        }
+
         if disputed_transaction.is_some() {
             let transaction_is_under_dispute = disputed_transactions_by_id.get(&disputed_transaction.unwrap().tx);
             if transaction_is_under_dispute.is_none() {
@@ -64,6 +80,10 @@ impl Account {
     }
 
     pub fn chargeback(&mut self, disputed_transaction: Option<&&Transaction>) {
+        if self.locked {
+            return;
+        }
+        
         if disputed_transaction.is_some() {
             self.held -= disputed_transaction.unwrap().amount;
             self.total -= disputed_transaction.unwrap().amount;
