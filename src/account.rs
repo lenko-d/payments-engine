@@ -50,7 +50,6 @@ impl Account {
     pub fn resolve(&mut self, disputed_transaction: Option<&&Transaction>, disputed_transactions_by_id: &mut HashMap<u32, &Transaction>) {
         if disputed_transaction.is_some() {
             let transaction_is_under_dispute = disputed_transactions_by_id.get(&disputed_transaction.unwrap().tx);
-
             if transaction_is_under_dispute.is_none() {
                 // The transaction is not under a dispute so we do nothing.
                 // The transaction will not be under a dispute if it was already resolved or the payment command to start a dispute is missing

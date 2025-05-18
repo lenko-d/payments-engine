@@ -38,6 +38,13 @@ fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
     let mut disputed_transactions_by_id = HashMap::new();
     for transaction in transactions.iter() {
         if transaction.type_ == "dispute" {
+            let transaction_is_under_dispute = disputed_transactions_by_id.get(&transaction.tx);
+            if transaction_is_under_dispute.is_some() {
+                // The transaction is already under dispute so we don't do anything.
+                // We ignore(skip) the dispute request.
+                continue;
+            }
+
             disputed_transactions_by_id.insert(transaction.tx, transaction);
         }
 
@@ -197,6 +204,35 @@ mod tests {
         };
     let mut tx_dispute = vec![t1];
     transactions.append(&mut tx_dispute);
+
+    let accounts = process_transactions(&mut transactions);
+ 
+    let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
+    assert!(account.available == Decimal::from_str_exact("27").unwrap());
+    assert!(account.held == Decimal::from_str_exact("17").unwrap());
+    assert!(account.total == Decimal::from_str_exact("44").unwrap());
+ }
+
+ #[test]
+ fn dispute_transaction_that_is_already_disputed(){
+    let mut transactions = deposit_transactions(1,2,3);
+    let t1: Transaction = Transaction{
+            type_: "dispute".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 2,
+            amount: Decimal::ZERO,
+        };
+    let mut tx_dispute = vec![t1];
+    transactions.append(&mut tx_dispute);
+
+    let t2: Transaction = Transaction{
+            type_: "dispute".to_owned(),
+            client: CLIENT_ID_TWO,
+            tx: 2,
+            amount: Decimal::ZERO,
+    };
+    let mut tx_dispute_again = vec![t2];
+    transactions.append(&mut tx_dispute_again);
 
     let accounts = process_transactions(&mut transactions);
  
