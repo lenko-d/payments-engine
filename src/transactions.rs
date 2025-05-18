@@ -128,6 +128,7 @@ mod tests {
  
     let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
     assert!(account.available == Decimal::from_str_exact("44").unwrap());
+    assert!(account.total == Decimal::from_str_exact("44").unwrap());
  }
 
  #[test]
@@ -139,6 +140,7 @@ mod tests {
  
     let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
     assert!(account.available == Decimal::from_str_exact("4").unwrap());
+    assert!(account.total == Decimal::from_str_exact("4").unwrap());
  }
 
  #[test]
@@ -151,6 +153,7 @@ mod tests {
  
     let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
     assert!(account.available == Decimal::from_str_exact("4").unwrap());
+    assert!(account.total == Decimal::from_str_exact("4").unwrap());
  }
 
  #[test]
@@ -172,6 +175,7 @@ mod tests {
  
     let account = get_account_by_client_id(CLIENT_ID_TWO, accounts).unwrap();
     assert!(account.available == Decimal::from_str_exact("0").unwrap());
+    assert!(account.total == Decimal::from_str_exact("0").unwrap());
  }
 
  #[test]
