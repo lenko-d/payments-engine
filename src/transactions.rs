@@ -7,7 +7,7 @@ use crate::account::{Account};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Transaction {
-     #[serde(rename = "type")]
+    #[serde(rename = "type")]
     pub type_: String,
     pub client: u16,
     pub tx: u32,
