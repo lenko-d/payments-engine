@@ -32,25 +32,28 @@ fn read_transactions(file_path: &str) -> Result<Vec<Transaction>, Box<dyn Error>
 }
 
 fn process_transactions(transactions: &mut Vec<Transaction>) -> Vec<Account> {
-    let mut accounts = Vec::new();
+    let mut accounts: HashMap<u16, Account> = HashMap::new();
     let mut transactions_by_id = HashMap::new();
     for transaction in transactions.iter() {
         transactions_by_id.insert(transaction.tx, transaction);
 
-        let mut acct = Account::new(transaction.client);
+        let mut account = Account::new(transaction.client);
+        if accounts.contains_key(&transaction.client) {
+            account = accounts.get(&transaction.client).unwrap().clone();
+        }
 
         match transaction.type_.as_str() {
-            "deposit" => acct.deposit(transaction.amount),
-            "withdrawal" => acct.withdraw(transaction.amount),
-            "dispute" => acct.dispute(transactions_by_id.get(&transaction.tx)),
-            "resolve" => acct.resolve(transactions_by_id.get(&transaction.tx)),
-            "chargeback" => acct.chargeback(transactions_by_id.get(&transaction.tx)),
+            "deposit" => account.deposit(transaction.amount),
+            "withdrawal" => account.withdraw(transaction.amount),
+            "dispute" => account.dispute(transactions_by_id.get(&transaction.tx)),
+            "resolve" => account.resolve(transactions_by_id.get(&transaction.tx)),
+            "chargeback" => account.chargeback(transactions_by_id.get(&transaction.tx)),
             _ => println!("unhandled TODO")
         }
 
-        accounts.push(acct);
+        accounts.insert(transaction.client,account);
     }
     
-    accounts
+    accounts.values().cloned().collect()
 }
 

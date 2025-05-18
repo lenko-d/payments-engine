@@ -4,7 +4,7 @@ use rust_decimal::{prelude::FromPrimitive, Decimal};
 
 use crate::transactions::Transaction;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Account {
     pub client: u16,
     #[serde(serialize_with = "decimal_round")]
